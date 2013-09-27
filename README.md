@@ -323,7 +323,7 @@ There are many `apache::mod::[name]` classes within this module that can be decl
 * `dav`
 * `dav_fs`
 * `deflate`
-* `dir`*
+* `dir`\*
 * `disk_cache`
 * `fcgid`
 * `info`
@@ -332,25 +332,25 @@ There are many `apache::mod::[name]` classes within this module that can be decl
 * `mime_magic`
 * `mpm_event`
 * `negotiation`
-* `passenger`*
+* `passenger`\*
 * `perl`
 * `php` (requires [`mpm_module`](#mpm_module) set to `prefork`)
-* `prefork`*
-* `proxy`*
+* `prefork`\*
+* `proxy`\*
 * `proxy_html`
 * `proxy_http`
 * `python`
 * `reqtimeout`
 * `setenvif`
-* `ssl`* (see [apache::mod::ssl](#class-apachemodssl) below)
+* `ssl`\* (see [apache::mod::ssl](#class-apachemodssl) below)
 * `status`
 * `suphp`
-* `userdir`*
-* `worker`*
+* `userdir`\*
+* `worker`\*
 * `wsgi` (see [apache::mod::wsgi](#class-apachemodwsgi) below)
 * `xsendfile`
 
-Modules noted with a * indicate that the module has settings and, thus, a template that includes parameters. These parameters control the module's configuration. Most of the time, these parameters will not require any configuration or attention.
+Modules noted with a \* indicate that the module has settings and, thus, a template that includes parameters. These parameters control the module's configuration. Most of the time, these parameters will not require any configuration or attention.
 
 The modules mentioned above, and other Apache modules that have templates, will cause template files to be dropped along with the mod install, and the module will not work without the template. Any mod without a template will install package but drop no files.
 
@@ -726,6 +726,25 @@ $proxy_pass = [
 apache::vhost { 'site.name.fdqn':
   …
   proxy_pass       => $proxy_pass,
+}
+```
+
+#####`proxy_pass_match`
+
+Specifies an array of hashes with `path` & `uri` keys for a `ProxyPassMatch` configuration. Defaults to 'undef'.
+
+Example:
+
+```puppet
+$proxy_pass_match = [
+  { 'path' => '^/app1/.*$', 'url' => 'balancer://backend_app1/' },
+  { 'path' => '^/app2/.*$', 'url' => 'balancer://backend_app2/' },
+  { 'path' => '^/app3/.*$', 'url' => 'balancer://backend_app3/' },
+]
+
+apache::vhost { 'site.name.fdqn':
+  #...
+  proxy_pass_match => $proxy_pass_match,
 }
 ```
 

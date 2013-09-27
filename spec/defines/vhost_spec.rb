@@ -245,6 +245,15 @@ describe 'apache::vhost', :type => :define do
           :notmatch => /ProxyPass .+!$/,
         },
         {
+          :title    => 'should accept proxy_pass_match hash',
+          :attr     => 'proxy_pass_match',
+          :value    => { 'path' => '^(/.*?)/(certificate.*?)/(.*)$', 'url' => 'balancer://puppet_ca/' },
+          :match    => [
+            '  ProxyPassMatch   ^(/.*?)/(certificate.*?)/(.*)$ balancer://puppet_ca/',
+            '  ProxyPassReverse ^(/.*?)/(certificate.*?)/(.*)$ balancer://puppet_ca/',
+          ],
+        },
+        {
           :title => 'should enable rack',
           :attr  => 'rack_base_uris',
           :value => ['/rack1','/rack2'],

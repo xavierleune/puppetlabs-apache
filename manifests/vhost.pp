@@ -97,6 +97,7 @@ define apache::vhost(
     $scriptalias                 = undef,
     $proxy_dest                  = undef,
     $proxy_pass                  = undef,
+    $proxy_pass_match            = undef,
     $sslproxyengine              = false,
     $suphp_addhandler            = $apache::params::suphp_addhandler,
     $suphp_engine                = $apache::params::suphp_engine,
@@ -274,7 +275,7 @@ define apache::vhost(
   }
 
   # Load mod_proxy if needed and not yet loaded
-  if ($proxy_dest or $proxy_pass) {
+  if ($proxy_dest or $proxy_pass or $proxy_pass_match) {
     if ! defined(Class['apache::mod::proxy']) {
       include apache::mod::proxy
     }
@@ -345,6 +346,8 @@ define apache::vhost(
   #   - $directories (a list of key-value hashes is expected)
   # proxy fragment:
   #   - $proxy_dest
+  #   - $proxy_pass
+  #   - $proxy_pass_match
   #   - $no_proxy_uris
   # rack fragment:
   #   - $rack_base_uris
