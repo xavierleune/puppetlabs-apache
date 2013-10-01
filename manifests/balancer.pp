@@ -66,10 +66,12 @@ define apache::balancer (
   # else: the resources have been created and they introduced their
   # concat fragments. We don't have to do anything about them.
 
-  concat::fragment { "01-${name}-proxyset":
-    target  => $target,
-    order   => '19',
-    content => inline_template("<% proxy_set.each do |key, value| %> Proxyset <%= key %>=<%= value %>\n<% end %>"),
+  if $proxy_set and ! empty($proxy_set) {
+    concat::fragment { "01-${name}-proxyset":
+      target  => $target,
+      order   => '19',
+      content => inline_template("<% @proxy_set.each do |key, value| %> Proxyset <%= key %>=<%= value %>\n<% end %>"),
+    }
   }
 
   concat::fragment { "01-${name}-footer":
