@@ -49,6 +49,7 @@ class apache (
   $group                = $::apache::params::group,
   $keepalive            = $::apache::params::keepalive,
   $keepalive_timeout    = $::apache::params::keepalive_timeout,
+  $max_keepalive_requests = $apache::params::max_keepalive_requests,
   $logroot              = $::apache::params::logroot,
   $log_level            = $::apache::params::log_level,
   $log_formats          = {},
@@ -66,7 +67,7 @@ class apache (
   validate_bool($service_enable)
 
   $valid_mpms_re = $apache_version ? {
-    2.4     => '(event|itk|peruser|prefork|worker)',
+    '2.4'   => '(event|itk|peruser|prefork|worker)',
     default => '(event|itk|prefork|worker)'
   }
 
@@ -270,6 +271,7 @@ class apache (
     # - $apxs_workaround
     # - $keepalive
     # - $keepalive_timeout
+    # - $max_keepalive_requests
     # - $server_root
     # - $server_tokens
     # - $server_signature

@@ -306,6 +306,10 @@ Enables persistent connections.
 
 Sets the amount of time the server will wait for subsequent requests on a persistent connection. Defaults to '15'.
 
+#####`max_keepalive_requests`
+
+Sets the limit of the number of requests allowed per connection when KeepAlive is on. Defaults to '100'.
+
 #####`log_level`
 
 Changes the verbosity level of the error log. Defaults to 'warn'. Valid values are 'emerg', 'alert', 'crit', 'error', 'warn', 'notice', 'info', or 'debug'.
@@ -388,7 +392,7 @@ Determines whether the HTTPD service is enabled when the machine is booted. Defa
 
 #####`service_ensure`
 
-Determines whether the service should be running. Can be set to 'undef', which is useful when you want to let the service be managed by some other application like Pacemaker. Defaults to 'running'.
+Determines whether the service should be running. Valid values are true, false, 'running' or 'stopped' when Puppet should manage the service. Any other value will set ensure to false for the Apache service, which is useful when you want to let the service be managed by some other application like Pacemaker. Defaults to 'running'.
 
 #####`service_name`
 
@@ -468,6 +472,7 @@ There are many `apache::mod::[name]` classes within this module that can be decl
 * `rewrite`
 * `rpaf`*
 * `setenvif`
+* `speling`
 * `ssl`* (see [`apache::mod::ssl`](#class-apachemodssl) below)
 * `status`*
 * `suphp`
@@ -674,6 +679,10 @@ Sets group access to the docroot directory. Defaults to 'root'.
 
 Sets individual user access to the docroot directory. Defaults to 'root'.
 
+#####`docroot_mode`
+
+Sets access permissions of the docroot directory. Defaults to 'undef'.
+
 #####`error_log`
 
 Specifies whether `*_error.log` directives should be configured. Defaults to 'true'.
@@ -758,6 +767,10 @@ Specifies the verbosity of the error log. Defaults to 'warn' for the global serv
 #####`no_proxy_uris`
 
 Specifies URLs you do not want to proxy. This parameter is meant to be used in combination with [`proxy_dest`](#proxy_dest).
+
+#####`proxy_preserve_host`
+
+Sets the [ProxyPreserveHost Directive](http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypreservehost).  true Enables the Host: line from an incoming request to be proxied to the host instead of hostname .  false sets this option to off (default).
 
 #####`options`
 
@@ -927,7 +940,7 @@ Multiple rewrites and conditions are also possible
           rewrite_cond => ['%{HTTP_USER_AGENT} ^MSIE'],
           rewrite_rule => ['^index\.html$ /index.IE.html [L]'],
         },
-        }
+        {
           rewrite_base => /apps/,
           rewrite_rule => ['^index\.cgi$ index.php', '^index\.html$ index.php', '^index\.asp$ index.html'],
         },
@@ -1031,7 +1044,7 @@ Sets up a virtual host with a wildcard alias subdomain mapped to a directory wit
     }
 ```
 
-#####`wsgi_daemon_process`, `wsgi_daemon_process_options`, `wsgi_process_group`, & `wsgi_script_aliases`
+#####`wsgi_daemon_process`, `wsgi_daemon_process_options`, `wsgi_process_group`, `wsgi_script_aliases`, & `wsgi_pass_authorization`
 
 Set up a virtual host with [WSGI](https://code.google.com/p/modwsgi/).
 
@@ -1042,6 +1055,8 @@ Set up a virtual host with [WSGI](https://code.google.com/p/modwsgi/).
 `wsgi_process_group` sets the group ID the virtual host will run under. Defaults to 'undef'.
 
 `wsgi_script_aliases` requires a hash of web paths to filesystem .wsgi paths. Defaults to 'undef'.
+
+`wsgi_pass_authorization` the WSGI application handles authorisation instead of Apache when set to 'On'. For more information see [here] (http://modwsgi.readthedocs.org/en/latest/configuration-directives/WSGIPassAuthorization.html).  Defaults to 'undef' where apache will set the defaults setting to 'Off'.
 
 To set up a virtual host with WSGI
 
@@ -1331,6 +1346,21 @@ Sets the order of processing Allow and Deny statements as per [Apache core docum
         { path  => '/path/to/directory', 
           order => 'Allow,Deny', 
         },
+      ],
+    }
+```
+
+######`sethandler`
+
+Sets a `SetHandler` directive as per the [Apache Core documentation](http://httpd.apache.org/docs/2.2/mod/core.html#sethandler). An example:
+
+```puppet
+    apache::vhost { 'sample.example.net':
+      docroot     => '/path/to/directory',
+      directories => [ 
+        { path       => '/path/to/directory', 
+          sethandler => 'None', 
+        }
       ],
     }
 ```
@@ -1797,11 +1827,50 @@ The Apache module relies heavily on templates to enable the `vhost` and `apache:
 
 The `apache::vhost::WSGIImportScript` parameter creates a statement inside the VirtualHost which is unsupported on older versions of Apache, causing this to fail.  This will be remedied in a future refactoring.
 
+###RHEL/CentOS 5
+
+The `apache::mod::passenger` and `apache::mod::proxy_html` classes are untested since repositories are missing compatible packages.   
+
+###RHEL/CentOS 7
+
+The `apache::mod::passenger` class is untested as the repository does not have packages for EL7 yet.  The fact that passenger packages aren't available also makes us unable to test the `rack_base_uri` parameter in `apache::vhost`.
+
 ###General
 
-This module is CI tested on Centos 5 & 6, Ubuntu 12.04, Debian 7, and RHEL 5 & 6 platforms against both the OSS and Enterprise version of Puppet. 
+This module is CI tested on Centos 5 & 6, Ubuntu 12.04 & 14.04, Debian 7, and RHEL 5, 6 & 7 platforms against both the OSS and Enterprise version of Puppet. 
 
 The module contains support for other distributions and operating systems, such as FreeBSD and Amazon Linux, but is not formally tested on those and regressions may occur.
+
+###SELinux and Custom Paths
+
+If you are running with SELinux in enforcing mode and want to use custom paths for your `logroot`, `mod_dir`, `vhost_dir`, and `docroot`, you will need to manage the context for the files yourself.
+
+Something along the lines of:
+
+```puppet
+        exec { 'set_apache_defaults':
+          command => 'semanage fcontext -a -t httpd_sys_content_t "/custom/path(/.*)?"',
+          path    => '/bin:/usr/bin/:/sbin:/usr/sbin',
+          require => Package['policycoreutils-python'],
+        }
+        package { 'policycoreutils-python': ensure => installed }
+        exec { 'restorecon_apache':
+          command => 'restorecon -Rv /apache_spec',
+          path    => '/bin:/usr/bin/:/sbin:/usr/sbin',
+          before  => Service['httpd'],
+          require => Class['apache'],
+        }
+        class { 'apache': }
+        host { 'test.server': ip => '127.0.0.1' }
+        file { '/custom/path': ensure => directory, }
+        file { '/custom/path/include': ensure => present, content => '#additional_includes' }
+        apache::vhost { 'test.server':
+          docroot             => '/custom/path',
+          additional_includes => '/custom/path/include',
+        }
+```
+
+You need to set the contexts using `semanage fcontext` not `chcon` because `file {...}` resources will reset the context to the values in the database if the resource isn't specifying the context.
 
 ##Development
 
